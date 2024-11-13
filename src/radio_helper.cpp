@@ -33,12 +33,14 @@ void radio_helper_init(const char* ssid, const char* key) {
         delay(5000);
         ESP.restart();
     }
+}
 
+void radio_helper_ota_init(const std::string& dnsName) {
     // Port defaults to 3232
     // ArduinoOTA.setPort(3232);
 
     // Hostname defaults to esp3232-[MAC]
-    ArduinoOTA.setHostname("esp32ota");
+    ArduinoOTA.setHostname(dnsName.c_str());
 
     // No authentication by default
     // ArduinoOTA.setPassword("admin");
@@ -57,57 +59,59 @@ void radio_helper_init(const char* ssid, const char* key) {
                 }
 
                 // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
-                Serial.println("Start updating " + type);
+                SERIAL_DEBUG.println("Start updating " + type);
             })
             .onEnd([]() {
-                Serial.println("\nEnd");
+                SERIAL_DEBUG.println("\nEnd");
             })
             .onProgress([](unsigned int progress, unsigned int total) {
-                //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                SERIAL_DEBUG.printf("Progress: %u%%\r", (progress / (total / 100)));
             })
             .onError([](ota_error_t error) {
-                Serial.printf("Error[%u]: ", error);
+                SERIAL_DEBUG.printf("Error[%u]: ", error);
                 if (error == OTA_AUTH_ERROR) {
-                    Serial.println("Auth Failed");
+                    SERIAL_DEBUG.println("Auth Failed");
                 } else if (error == OTA_BEGIN_ERROR) {
-                    Serial.println("Begin Failed");
+                    SERIAL_DEBUG.println("Begin Failed");
                 } else if (error == OTA_CONNECT_ERROR) {
-                    Serial.println("Connect Failed");
+                    SERIAL_DEBUG.println("Connect Failed");
                 } else if (error == OTA_RECEIVE_ERROR) {
-                    Serial.println("Receive Failed");
+                    SERIAL_DEBUG.println("Receive Failed");
                 } else if (error == OTA_END_ERROR) {
-                    Serial.println("End Failed");
+                    SERIAL_DEBUG.println("End Failed");
                 }
             });
 
     ota_helper_is_initialized = true;
-    Serial.println("OTA initialized");
+    SERIAL_DEBUG.println("OTA initialized");
 }
 
 void radio_helper_ota_begin() {
-    assert(ota_helper_is_initialized);
+    if(!ota_helper_is_initialized) {
+        SERIAL_DEBUG.println("WARNING: OTA was not initialized before calling radio_helper_ota_begin()");
+        radio_helper_ota_init(OTA_DNS_NAME);
+    }
     if (ota_helper_is_running) {
-        Serial.println("OTA is already listening");
+        SERIAL_DEBUG.println("OTA is already listening");
     } else {
-        Serial.println("Starting OTA...");
+        SERIAL_DEBUG.println("Starting OTA...");
         ArduinoOTA.begin();
         ota_helper_is_running = true;
-        Serial.println("OTA listening on IP ");
-        Serial.println(WiFi.localIP());
+        SERIAL_DEBUG.println("OTA listening on IP ");
+        SERIAL_DEBUG.println(WiFi.localIP());
         digitalWrite(USER_LED_PIN, LOW);
     }
 }
 
 void radio_helper_ota_end() {
-    assert(ota_helper_is_initialized);
     if (ota_helper_is_running) {
-        Serial.println("Stopping OTA...");
+        SERIAL_DEBUG.println("Stopping OTA...");
         ArduinoOTA.end();
         ota_helper_is_running = false;
-        Serial.println("OTA stopped");
+        SERIAL_DEBUG.println("OTA stopped");
         digitalWrite(USER_LED_PIN, HIGH);
     } else {
-        Serial.println("OTA is already stopped");
+        SERIAL_DEBUG.println("OTA is already stopped");
     }
 }
 

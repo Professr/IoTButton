@@ -71,6 +71,7 @@ void menu_click_handler(Button2& btn) {
                     menuState = MenuState::OTA;
                     utils_blink_user_led(3, 100);
                     radio_helper_init(WIFI_SSID, WIFI_PASS);
+                    radio_helper_ota_init(OTA_DNS_NAME);
                     radio_helper_ota_begin();
                     break;
                 case MenuState::OTA:
@@ -93,11 +94,13 @@ void back_click_handler(Button2& btn) {
             }
             break;
         case double_click:
+            // Double click of the back button should reboot
             switch(menuState) {
                 case MenuState::MAIN:
                 case MenuState::OTA:
+                    // Before reboot, cleanly end any OTA that's running
+                    radio_helper_ota_end();
                 default:
-                    // Double click of the back button should reboot
                     ESP.restart();
                     break;
             }
