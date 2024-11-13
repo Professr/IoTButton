@@ -1,28 +1,30 @@
 //
-// Created by Ellie Hussey on 11/11/24.
+// Helper functions for managing the internal radio and Wi-Fi/networking
 //
 
-#include "ota_helper.h"
+#include "config.h"
+#include "utils.h"
+#include "radio_helper.h"
+#include "power_helper.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <NetworkUdp.h>
 #include <ArduinoOTA.h>
+#include <HTTPClient.h>
 
 bool ota_helper_is_initialized = false;
 bool ota_helper_is_running = false;
 
-void ota_helper_init(const char* ssid, const char* key) {
-    // Set up the user LED
-    pinMode(GPIO_NUM_15, OUTPUT);
-    digitalWrite(GPIO_NUM_15, HIGH);
+void radio_helper_init(const char* ssid, const char* key) {
+    digitalWrite(USER_LED_PIN, HIGH);
 
     // Select the radio antenna
-    pinMode(OTA_HELPER_RADIO_SELECT_PIN, OUTPUT);
-    digitalWrite(OTA_HELPER_RADIO_SELECT_PIN, OTA_HELPER_USE_CHIP_ANTENNA ? LOW : HIGH);
+    pinMode(RADIO_SELECT_PIN, OUTPUT);
+    digitalWrite(RADIO_SELECT_PIN, RADIO_USE_CHIP_ANTENNA ? LOW : HIGH);
 
     // Enable the radio system
-    pinMode(OTA_HELPER_RADIO_ENABLE_PIN, OUTPUT);
-    digitalWrite(OTA_HELPER_RADIO_ENABLE_PIN, HIGH);
+    pinMode(RADIO_ENABLE_PIN, OUTPUT);
+    digitalWrite(RADIO_ENABLE_PIN, HIGH);
 
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, key);
@@ -61,7 +63,7 @@ void ota_helper_init(const char* ssid, const char* key) {
                 Serial.println("\nEnd");
             })
             .onProgress([](unsigned int progress, unsigned int total) {
-                Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
+                //Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
             })
             .onError([](ota_error_t error) {
                 Serial.printf("Error[%u]: ", error);
@@ -82,7 +84,7 @@ void ota_helper_init(const char* ssid, const char* key) {
     Serial.println("OTA initialized");
 }
 
-void ota_helper_begin() {
+void radio_helper_ota_begin() {
     assert(ota_helper_is_initialized);
     if (ota_helper_is_running) {
         Serial.println("OTA is already listening");
@@ -92,25 +94,36 @@ void ota_helper_begin() {
         ota_helper_is_running = true;
         Serial.println("OTA listening on IP ");
         Serial.println(WiFi.localIP());
-        digitalWrite(GPIO_NUM_15, LOW);
+        digitalWrite(USER_LED_PIN, LOW);
     }
 }
 
-void ota_helper_end() {
+void radio_helper_ota_end() {
     assert(ota_helper_is_initialized);
     if (ota_helper_is_running) {
         Serial.println("Stopping OTA...");
         ArduinoOTA.end();
         ota_helper_is_running = false;
         Serial.println("OTA stopped");
-        digitalWrite(GPIO_NUM_15, HIGH);
+        digitalWrite(USER_LED_PIN, HIGH);
     } else {
         Serial.println("OTA is already stopped");
     }
 }
 
-void ota_helper_loop() {
+void radio_helper_ota_loop() {
     if (ota_helper_is_running) {
         ArduinoOTA.handle();
     }
+}
+
+void radio_helper_http_get(const std::string& serverUrl, const std::map<std::string, std::string>& params) {
+    HTTPClient http;
+    std::string serverPath = serverUrl;
+    for (const auto& itr: params) {
+        serverPath += (itr == *params.begin() ? std::string("?") : std::string("&"));
+        serverPath += itr.first + "=" + itr.second;
+    }
+    http.begin(serverPath.c_str());
+    http.GET();
 }

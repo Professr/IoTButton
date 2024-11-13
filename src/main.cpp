@@ -1,55 +1,81 @@
 //
-// Created by Ellie Hussey on 11/11/24.
+// Example implementation of an IoT button with OTA update support
+// Built using the Seeed Studio XIAO ESP32C6 module
 //
 
 #include "main.h"
-#include "../include/power_saver.h"
-#include "../include/ota_helper.h"
-#include <Arduino.h>
+
+#include "config.h"
+#include "utils.h"
+#include "power_helper.h"
+#include "menu_helper.h"
+#include "radio_helper.h"
+
+#include <string>
+
+#ifndef Arduino_h
+    #include <Arduino.h> // For pin constants and types
+#endif
+
+enum OperatingState {
+    NORMAL,
+    MENU,
+};
+
+OperatingState operatingState;
 
 void setup(){
-    #if SERIAL_DEBUG
-        Serial.begin(115200);
-    #endif
+    SERIAL_DEBUG.begin(115200);
     delay(1000); //Take some time to open up the Serial Monitor
 
-    // Set up the user LED
-    pinMode(GPIO_NUM_15, OUTPUT);
-    digitalWrite(GPIO_NUM_15, HIGH);
+    // Set up the menu enable pin
+    pinMode(MENU_BUTTON_PIN, INPUT_PULLDOWN);
+
+    // Initialize utility functions and blink user LED once
+    utils_init();
+    utils_blink_user_led(1, 100);
 
     // Initialize power saver
-    power_saver_init();
-    pinMode(POWER_SAVER_WAKE_PIN, INPUT_PULLDOWN);
+    power_helper_init();
 
     // Read and print the battery voltage (to 3 decimal places)
-    #if SERIAL_DEBUG
-        Serial.println(get_battery_voltage(), 3);
-    #endif
+    SERIAL_DEBUG.println(get_battery_voltage(), 3);
 
-    // Set up OTA enable pin
-    pinMode(OTA_ENABLE_PIN, INPUT_PULLDOWN);
-    // Set up OTA cancel pin
-    pinMode(OTA_CANCEL_PIN, INPUT_PULLDOWN);
-
-    // If the OTA enable pin is high, start listening for OTA updates
-    if (digitalRead(OTA_ENABLE_PIN)) {
-        // Initialize OTA functionality
-        ota_helper_init(OTA_WIFI_SSID, OTA_WIFI_PASS);
-        ota_helper_begin();
+    // If the menu button pin is high, start the menu handler
+    if (digitalRead(MENU_BUTTON_PIN)) {
+        while(digitalRead(MENU_BUTTON_PIN)) {
+            utils_blink_user_led(1, 50);
+        }
+        operatingState = OperatingState::MENU;
+        menu_helper_init(MENU_BUTTON_PIN, BACK_BUTTON_PIN);
     } else {
-        // If we're not in OTA mode, do stuff
-        do_stuff();
+        // If we're not in menu mode, do normal init
+        operatingState = OperatingState::NORMAL;
+        normal_init();
     }
 }
 
-void do_stuff() {
-    enter_deep_sleep();
+void normal_init() {
+    // Normal IoT button operation - connect to Wi-Fi, make an HTTP request, go to sleep
+    pinMode(DEEP_SLEEP_WAKE_PIN, INPUT_PULLDOWN);
+
+    radio_helper_init(WIFI_SSID, WIFI_PASS);
+    radio_helper_http_get(IOT_BUTTON_EVENT_URL, {
+            {"vbatt", std::to_string(get_battery_voltage())},
+            {"event", std::to_string(esp_sleep_get_wakeup_cause())},
+    });
+
+    utils_blink_user_led(5, 100);
+
+    enter_deep_sleep_wake_on_pin(DEEP_SLEEP_WAKE_PIN);
 }
 
 void loop(){
-    ota_helper_loop();
-    // If the OTA cancel pin goes high while waiting for OTA updates, reboot
-    if (digitalRead(OTA_CANCEL_PIN)) {
-        ESP.restart();
+    switch (operatingState) {
+        case OperatingState::MENU:
+            menu_helper_loop();
+            break;
+        default:
+            break;
     }
 }
