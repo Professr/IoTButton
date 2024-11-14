@@ -13,7 +13,7 @@
 
 #include <string>
 
-#include <Arduino.h> // For pin constants and types
+#include <Arduino.h>
 
 enum OperatingState {
     NORMAL,
@@ -43,16 +43,20 @@ void setup(){
 
     // If the menu button pin is high, start the menu handler
     if (digitalRead(MENU_BUTTON_PIN)) {
-        while(digitalRead(MENU_BUTTON_PIN)) {
-            utils_blink_user_led(1, 50);
-        }
         operatingState = OperatingState::MENU;
-        menu_helper_init(MENU_BUTTON_PIN, BACK_BUTTON_PIN);
+        menu_init();
     } else {
         // If we're not in menu mode, do normal init
         operatingState = OperatingState::NORMAL;
         normal_init();
     }
+}
+
+void menu_init() {
+    while(digitalRead(MENU_BUTTON_PIN)) {
+        utils_blink_user_led(1, 50);
+    }
+    menu_helper_init(MENU_BUTTON_PIN, BACK_BUTTON_PIN);
 }
 
 void normal_init() {
@@ -77,6 +81,7 @@ void loop(){
         case OperatingState::MENU:
             menu_helper_loop();
             break;
+        case OperatingState::NORMAL:
         default:
             break;
     }
