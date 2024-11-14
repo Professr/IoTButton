@@ -2,10 +2,7 @@
 // Utility functions and reusable hardware abstractions
 //
 #include "config.h"
-
-#ifndef Arduino_h
-    #include <Arduino.h> // For pin constants and types
-#endif
+#include <Arduino.h>
 
 void utils_init() {
     pinMode(USER_LED_PIN, OUTPUT);

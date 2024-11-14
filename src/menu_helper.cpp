@@ -7,12 +7,8 @@
 #include "menu_helper.h"
 #include "radio_helper.h"
 
-#ifndef Arduino_h
-    #include <Arduino.h> // For pin constants and types
-#endif
-#ifndef Button2_h
-    #include "Button2.h"
-#endif
+#include <Arduino.h>
+#include "Button2.h"
 
 Button2 btn_menu;
 Button2 btn_back;
@@ -26,13 +22,13 @@ MenuState menuState = MenuState::MAIN;
 
 void menu_helper_init(uint8_t menu_button_pin, uint8_t back_button_pin) {
     // Set up menu button handler
-    btn_menu.begin(menu_button_pin, INPUT_PULLDOWN);
+    btn_menu.begin(menu_button_pin, INPUT_PULLDOWN, false);
     btn_menu.setDoubleClickTime(500);
     btn_menu.setClickHandler(menu_click_handler);
     btn_menu.setDoubleClickHandler(menu_click_handler);
 
     // Set up back button handler
-    btn_back.begin(back_button_pin, INPUT_PULLDOWN);
+    btn_back.begin(back_button_pin, INPUT_PULLDOWN, false);
     btn_menu.setDoubleClickTime(500);
     btn_back.setClickHandler(back_click_handler);
     btn_back.setDoubleClickHandler(back_click_handler);

@@ -13,9 +13,7 @@
 
 #include <string>
 
-#ifndef Arduino_h
-    #include <Arduino.h> // For pin constants and types
-#endif
+#include <Arduino.h> // For pin constants and types
 
 enum OperatingState {
     NORMAL,
@@ -23,8 +21,10 @@ enum OperatingState {
 };
 
 OperatingState operatingState;
+unsigned long bootMillis;
 
 void setup(){
+    bootMillis = millis();
     SERIAL_DEBUG.begin(115200);
     delay(1000); //Take some time to open up the Serial Monitor
 
@@ -57,12 +57,14 @@ void setup(){
 
 void normal_init() {
     // Normal IoT button operation - connect to Wi-Fi, make an HTTP request, go to sleep
+    const unsigned long millisecondsSinceWake = millis() - bootMillis;
     pinMode(DEEP_SLEEP_WAKE_PIN, INPUT_PULLDOWN);
 
     radio_helper_init(WIFI_SSID, WIFI_PASS);
     radio_helper_http_get(IOT_BUTTON_EVENT_URL, {
-            {"vbatt", std::to_string(get_battery_voltage())},
-            {"event", std::to_string(esp_sleep_get_wakeup_cause())},
+            {"vBatt", std::to_string(get_battery_voltage())},
+            {"eventType", std::to_string(esp_sleep_get_wakeup_cause())},
+            {"msSinceEvent", std::to_string(millisecondsSinceWake)},
     });
 
     utils_blink_user_led(5, 100);

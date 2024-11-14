@@ -6,9 +6,7 @@
 #include "config.h"
 #include "utils.h"
 
-#ifndef Arduino_h
-    #include <Arduino.h> // For pin constants and types
-#endif
+#include <Arduino.h>
 
 
 /*

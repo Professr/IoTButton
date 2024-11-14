@@ -5,7 +5,6 @@
 #include "config.h"
 #include "utils.h"
 #include "radio_helper.h"
-#include "power_helper.h"
 #include <WiFi.h>
 #include <ESPmDNS.h>
 #include <NetworkUdp.h>
@@ -121,7 +120,7 @@ void radio_helper_ota_loop() {
     }
 }
 
-void radio_helper_http_get(const std::string& serverUrl, const std::map<std::string, std::string>& params) {
+int radio_helper_http_get(const std::string& serverUrl, const std::map<std::string, std::string>& params) {
     HTTPClient http;
     std::string serverPath = serverUrl;
     for (const auto& itr: params) {
@@ -129,5 +128,5 @@ void radio_helper_http_get(const std::string& serverUrl, const std::map<std::str
         serverPath += itr.first + "=" + itr.second;
     }
     http.begin(serverPath.c_str());
-    http.GET();
+    return http.GET();
 }

@@ -17,17 +17,17 @@
     #define SERIAL_DEBUG Serial
 #else
     // This is a do-nothing replacement for "Serial"
-    class VoidSerial {
+    class NoopSerial {
         public:
             template <typename T>
-            void begin(T t...) {}
+            inline void begin(T t...){ }
             template <typename T>
-            void println(T t...) {}
+            inline void println(T t...){ }
             template <typename T>
-            void printf(T t...) {}
+            inline void printf(T t...){ }
     };
-    extern VoidSerial voidSerial;
-    #define SERIAL_DEBUG voidSerial
+    extern NoopSerial noopSerial;
+    #define SERIAL_DEBUG noopSerial
 #endif
 /** END SPECIAL MACROS */
 
